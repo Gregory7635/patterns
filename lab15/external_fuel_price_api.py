@@ -1,0 +1,46 @@
+import time
+
+
+class ServiceUnavailableError(Exception):
+    """Внешний сервис недоступен (сеть, таймаут, сбой на стороне сервиса)."""
+
+
+class ExternalFuelPriceAPI:
+    """
+    Имитация стороннего сервиса цен на топливо (например, агрегатора цен на АЗС).
+
+    У такого сервиса, как правило, свой формат ответа и свои названия методов,
+    не совпадающие с тем, что удобно нашему приложению: метод называется
+    fetch_price(), а не get_price_per_liter(), и возвращает не просто число,
+    а целый словарь с дополнительными полями.
+    """
+
+    _PRICES = {
+        "АИ-92": 54.10,
+        "АИ-95": 58.30,
+        "ДТ": 60.90,
+    }
+
+    def __init__(self):
+        self.available = True   # выключатель для имитации сбоя сервиса
+        self.calls = 0          # сколько раз к сервису реально обратились
+        self.delay = 0.0        # имитация сетевой задержки, секунд на запрос
+
+    def fetch_price(self, fuel_type: str) -> dict:
+        """Возвращает 'сырой' ответ в формате внешнего сервиса."""
+        self.calls += 1
+        if self.delay:
+            time.sleep(self.delay)
+        if not self.available:
+            raise ServiceUnavailableError("Сервис цен на топливо не отвечает")
+        fuel_type = fuel_type.strip().upper()
+        if fuel_type not in self._PRICES:
+            raise ValueError(
+                f"Внешний сервис не знает тип топлива {fuel_type!r}. "
+                f"Доступные: {', '.join(self._PRICES)}"
+            )
+        return {
+            "fuel_type": fuel_type,
+            "price_rub_per_liter": self._PRICES[fuel_type],
+            "updated_at": "2026-09-22",
+        }
